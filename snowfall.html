@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Snowfall Animation</title>
+    <style>
+        /* Reset the default styles for the snowflakes */
+        * {
+            margin: 0;
+            padding: 0;
+            /*box-sizing: border-box;*/
+        }
+
+        /* Black background for testing */
+        body {
+            background-color: #000;
+            overflow: hidden;
+        }
+
+        @keyframes snowfall {
+            0% {
+                transform: translateY(-100%) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }            
+        }
+
+        /* Add CSS styles for the snowflakes */
+        .snowflake {
+            position: absolute;
+            color: #fff;
+            /*font-size: 2em;*/
+            animation: snowfall linear forwards;
+        }
+
+        img.snowflake {
+            width: 50px;
+            height: 50px;
+            /*border: red 1px solid;*/
+        }
+    </style>
+</head>
+<body>
+    <!-- Add a container for the snowflakes -->
+    <div id="snowfall"></div>
+
+    <script>
+        // Variables for Animation
+        const snowfallContainer = document.getElementById('snowfall'); // The snowfall container
+        var lastFrameTime = 0; // The last frame time
+
+        // Snowflake SVGs
+        const snowflakeSVGs = [
+            "./snowflake1.svg",
+            "./snowflake2.svg",
+            "./snowflake3.svg"            
+        ];
+
+        const weightedSnowTypes = [
+            {
+                type: 'snowWord',
+                weight: 1
+            },
+            {
+                type: 'snowGlitch',
+                weight: 1
+            },
+            {
+                type: 'snowflakeSVG',
+                weight: 998
+            }
+        ];
+
+        // Function to select a weighted random item
+        function selectWeightedRandomItem(items) {
+            // Calculate the total weight of all items together
+            var totalWeight = items.reduce((prev, cur) => prev + cur.weight, 0);
+
+            // Get a random number between 0 and the total weight
+            var random = Math.random() * totalWeight;
+
+            // Loop through the items and return the first one whose weight is greater than the random number
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+
+                if (random < item.weight) {
+                    return item;
+                }
+
+                random -= item.weight;
+            }
+
+            // If nothing is returned, return null
+            return null;
+        }
+
+        // Function to create a snowflake
+        function createSnowflake() {
+            // 1/1000 chance of having the 'snowflake' just be the word 'snow', otherwise it will be an SVG
+            var snowType = selectWeightedRandomItem(weightedSnowTypes);
+            var snowflake;
+
+            switch (snowType.type) {
+                case 'snowWord':
+                    // Create a new span element to represent a snowflake
+                    snowflake = document.createElement('span');
+
+                    // Set the text content of the snowflake element to 'snow'
+                    snowflake.textContent = 'snow';
+
+                    break;
+                case 'snowGlitch':
+                    // Create a new span element to represent a snowflake
+                    snowflake = document.createElement('span');
+
+                    // Set the text content of the snowflake element to 'snow'
+                    snowflake.textContent = 'â„';
+
+                    break;
+                case 'snowflakeSVG':
+                    // Pick a random snowflake SVG
+                    var snowflakeSVG = snowflakeSVGs[Math.floor(Math.random() * snowflakeSVGs.length)];
+
+                    // Create a new img element to represent a snowflake
+                    snowflake = document.createElement('img');
+
+                    // Set the src attribute of the snowflake element to the random snowflake SVG
+                    snowflake.src = snowflakeSVG;
+
+                    break;
+                default:
+                    // Create a new span element to represent a snowflake
+                    snowflake = document.createElement('span');
+
+                    // Set the text content of the snowflake element to 'snow'
+                    snowflake.textContent = 'bug?';
+
+                    break;
+            }
+
+            // Add the 'snowflake' class to the snowflake element
+            snowflake.classList.add('snowflake');
+
+            // Set the left position of the snowflake element to a random value within the visible window width
+            snowflake.style.left = Math.random() * (window.innerWidth - snowflake.offsetWidth) + 'px';
+
+            // Set the animation duration of the snowflake element to a random value between 2 and 5 seconds
+            snowflake.style.animationDuration = Math.random() * 3 + 2 + 's';
+
+            // Set a resistance value for the snowflake element
+            snowflake.dataset.resistance = Math.random();
+
+            // Set a timestamp for when the snowflake should be removed
+            snowflake.dataset.removeAt = performance.now()/1000 + snowflake.style.animationDuration; // Convert to seconds
+
+            // Append the snowflake element to the 'snowfall' container
+            document.getElementById('snowfall').appendChild(snowflake);
+
+            // Remove the snowflake element after 5 seconds using a setTimeout function
+            setTimeout(() => {
+                snowflake.remove();
+            }, 5000);
+        }
+
+        // Function to apply a horizontal movement to the snowflakes to emulate wind
+        function applyWindToSnowflakes() {
+            var currentFrameTime = performance.now()/1000; // Convert to seconds
+
+            // Get all the snowflakes
+            const snowflakes = document.querySelectorAll('.snowflake');
+
+            // The wind speed in pixels per second
+            // It should go left and right over time, like a sine wave
+            const windSpeed = 1; // 1px per second
+
+            var windOffset = windSpeed * Math.sin(currentFrameTime); // Calculate the wind offset
+
+            // Loop through the snowflakes
+            snowflakes.forEach((snowflake) => {
+                // Set the left position of the snowflake element to a random value within the visible window width
+                snowflake.style.left = (parseFloat(snowflake.style.left) + windOffset * (1-snowflake.dataset.resistance)) + 'px';
+                
+                // Destroy the snowflake if it has passed its removal timestamp
+                if (currentFrameTime > snowflake.dataset.removeAt) {
+                    snowflake.remove();
+                }
+            });
+
+            requestAnimationFrame(applyWindToSnowflakes); // Call the function again
+        }
+
+        // Function to start the snowfall animation
+        function startSnowfall() {
+            // Call the createSnowflake function every 100 milliseconds
+            setInterval(createSnowflake, 100);
+
+            // Initialize the last frame time
+            lastFrameTime = performance.now()/1000; // Convert to seconds
+
+            requestAnimationFrame(applyWindToSnowflakes); // Call the function to apply wind to the snowflakes
+        }
+
+        // Call the startSnowfall function to begin the animation
+        startSnowfall();
+    </script>
+</body>
+</html>
